@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Your Docker registry account (Docker Hub username, or a full registry URL).
-        REGISTRY   = "your-dockerhub-user"
+        REGISTRY   = "nithish3990"
         IMAGE_TAG  = "${env.BUILD_NUMBER}"
         // Jenkins credentials ID for Docker registry login (create in Manage Jenkins > Credentials).
         DOCKER_CREDS = "dockerhub-creds"
@@ -14,7 +14,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main',
+                    url: 'github.com/Nithish-1503/Final-Project.git'
             }
         }
 

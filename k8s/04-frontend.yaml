@@ -16,7 +16,7 @@ spec:
       containers:
         - name: frontend
           # Replace <your-dockerhub-user> with your registry account.
-          image: <your-dockerhub-user>/trip-frontend:latest
+          image: nithish3990/trip-frontend:latest
           ports:
             - containerPort: 80
 ---
