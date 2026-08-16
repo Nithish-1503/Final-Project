@@ -29,7 +29,7 @@ spec:
       containers:
         - name: mysql
           # Replace <your-dockerhub-user> with your registry account.
-          image: <your-dockerhub-user>/trip-mysql:latest
+          image: nithish3990/trip-mysql:latest
           ports:
             - containerPort: 3306
           env:

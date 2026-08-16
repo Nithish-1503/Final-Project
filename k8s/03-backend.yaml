@@ -16,7 +16,7 @@ spec:
       containers:
         - name: backend
           # Replace <your-dockerhub-user> with your registry account.
-          image: <your-dockerhub-user>/trip-backend:latest
+          image: nithish3990/trip-backend:latest
           ports:
             - containerPort: 5000
           envFrom:
