@@ -49,8 +49,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: "${KUBECONFIG_CRED}", variable: 'KUBECONFIG')]) {
-                    // Apply manifests
+                
                     sh 'kubectl apply -f k8s/'
 
                     // Roll the deployments to the freshly built tag
@@ -64,7 +63,7 @@ pipeline {
                 }
             }
         }
-    }
+    
 
     post {
         success {
