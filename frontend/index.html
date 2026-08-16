@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trip Planner</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>✈️ Trip Planner</h1>
+      <p>Plan your next adventure</p>
+    </header>
+
+    <form id="tripForm" class="card">
+      <div class="row">
+        <input type="text" id="destination" placeholder="Destination" required />
+        <input type="date" id="startDate" required />
+        <input type="date" id="endDate" required />
+      </div>
+      <textarea id="notes" placeholder="Notes (hotels, activities, budget...)"></textarea>
+      <button type="submit">Add Trip</button>
+    </form>
+
+    <section>
+      <h2>My Trips</h2>
+      <div id="status" class="status"></div>
+      <ul id="tripList" class="trip-list"></ul>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

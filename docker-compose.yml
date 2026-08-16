@@ -1,0 +1,41 @@
+# For quick LOCAL testing of all three tiers before you move to Kubernetes.
+# Run:  docker compose up --build
+# Open: http://localhost:8080
+version: "3.9"
+
+services:
+  mysql:
+    build: ./database
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: tripdb
+      MYSQL_USER: tripuser
+      MYSQL_PASSWORD: trippass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: ./backend
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: tripdb
+      DB_USER: tripuser
+      DB_PASSWORD: trippass
+    depends_on:
+      - mysql
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql_data:
+
