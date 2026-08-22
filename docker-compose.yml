@@ -1,6 +1,4 @@
-# For quick LOCAL testing of all three tiers before you move to Kubernetes.
-# Run:  docker compose up --build
-# Open: http://localhost:8080
+
 version: "3.9"
 
 services:
@@ -34,7 +32,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - "9090:80"
 
 volumes:
   mysql_data:

@@ -1,16 +1,4 @@
-# Persistent storage for MySQL data so it survives pod restarts.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-pvc
-  namespace: trip-planner
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
----
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,7 +16,6 @@ spec:
     spec:
       containers:
         - name: mysql
-          # Replace <your-dockerhub-user> with your registry account.
           image: nithish3990/trip-mysql:latest
           ports:
             - containerPort: 3306
@@ -57,17 +44,3 @@ spec:
         - name: mysql-storage
           persistentVolumeClaim:
             claimName: mysql-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  namespace: trip-planner
-spec:
-  selector:
-    app: mysql
-  ports:
-    - port: 3306
-      targetPort: 3306
-  clusterIP: None   # headless service for the stateful DB
-

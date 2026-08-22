@@ -1,80 +1,143 @@
 pipeline {
+
     agent any
 
     environment {
-        // Your Docker registry account (Docker Hub username, or a full registry URL).
-        REGISTRY   = "nithish3990"
-        IMAGE_TAG  = "${env.BUILD_NUMBER}"
-        // Jenkins credentials ID for Docker registry login (create in Manage Jenkins > Credentials).
-        DOCKER_CREDS = "dockerhub-creds"
-        // Jenkins credentials ID for the kubeconfig file (Secret file type).
-        KUBECONFIG_CRED = "kubeconfig"
+
+        DOCKER_USERNAME = "nithish3990"
+
+        FRONTEND_IMAGE = "nithish3990/trip-planner-frontend"
+        BACKEND_IMAGE  = "nithish3990/trip-planner-backend"
+        DATABASE_IMAGE = "nithish3990/trip-planner-database"
+
+        IMAGE_TAG = "latest"
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout GitHub') {
+
             steps {
+
                 git branch: 'main',
-                    url: 'https://github.com/Nithish-1503/Final-Project.git'
+                    url: 'https://github.com/Nithish-1503/Docker-CI-CD.git'
             }
         }
 
-        stage('Build Images') {
+
+        stage('Build Frontend Image') {
+
             steps {
-                sh 'docker build -t $REGISTRY/trip-frontend:$IMAGE_TAG ./frontend'
-                sh 'docker build -t $REGISTRY/trip-backend:$IMAGE_TAG  ./backend'
-                sh 'docker build -t $REGISTRY/trip-mysql:$IMAGE_TAG    ./database'
+
+                sh '''
+                    docker build \
+                    -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                    ./forntend
+                '''
             }
         }
 
-        stage('Push Images') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: "${DOCKER_CREDS}",
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
-                    sh 'docker push $REGISTRY/trip-frontend:$IMAGE_TAG'
-                    sh 'docker push $REGISTRY/trip-backend:$IMAGE_TAG'
-                    sh 'docker push $REGISTRY/trip-mysql:$IMAGE_TAG'
 
-                    // Also tag & push :latest
-                    sh 'docker tag $REGISTRY/trip-frontend:$IMAGE_TAG $REGISTRY/trip-frontend:latest && docker push $REGISTRY/trip-frontend:latest'
-                    sh 'docker tag $REGISTRY/trip-backend:$IMAGE_TAG  $REGISTRY/trip-backend:latest  && docker push $REGISTRY/trip-backend:latest'
-                    sh 'docker tag $REGISTRY/trip-mysql:$IMAGE_TAG    $REGISTRY/trip-mysql:latest    && docker push $REGISTRY/trip-mysql:latest'
+        stage('Build Backend Image') {
+
+            steps {
+
+                sh '''
+                    docker build \
+                    -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                    ./backend
+                '''
+            }
+        }
+
+
+        stage('Build Database Image') {
+
+            steps {
+
+                sh '''
+                    docker build \
+                    -t ${DATABASE_IMAGE}:${IMAGE_TAG} \
+                    ./database
+                '''
+            }
+        }
+
+
+        stage('Docker Hub Login') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login \
+                        -u "$DOCKER_USER" \
+                        --password-stdin
+                    '''
                 }
             }
         }
+
+
+        stage('Push Docker Images') {
+
+            steps {
+
+                sh '''
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${DATABASE_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
+
 
         stage('Deploy to Kubernetes') {
+
             steps {
-                
-                    sh 'kubectl apply -f k8s/'
 
-                    // Roll the deployments to the freshly built tag
-                    sh 'kubectl -n trip-planner set image deployment/frontend frontend=$REGISTRY/trip-frontend:$IMAGE_TAG'
-                    sh 'kubectl -n trip-planner set image deployment/backend  backend=$REGISTRY/trip-backend:$IMAGE_TAG'
-                    sh 'kubectl -n trip-planner set image deployment/mysql    mysql=$REGISTRY/trip-mysql:$IMAGE_TAG'
+                sh '''
+                    kubectl apply -f k8s/mysql-secret.yaml
+                    kubectl apply -f k8s/mysql-pvc.yaml
+                    kubectl apply -f k8s/mysql-deployment.yaml
+                    kubectl apply -f k8s/mysql-service.yaml
 
-                    // Wait for rollout
-                    sh 'kubectl -n trip-planner rollout status deployment/backend'
-                    sh 'kubectl -n trip-planner rollout status deployment/frontend'
-                }
+                    kubectl apply -f k8s/backend-deployment.yaml
+                    kubectl apply -f k8s/backend-service.yaml
+
+                    kubectl apply -f k8s/frontend-deployment.yaml
+                    kubectl apply -f k8s/frontend-service.yaml
+
+                    kubectl rollout restart deployment/mysql
+                    kubectl rollout restart deployment/backend
+                    kubectl rollout restart deployment/frontend
+
+                    kubectl rollout status deployment/mysql
+                    kubectl rollout status deployment/backend
+                    kubectl rollout status deployment/frontend
+                '''
             }
         }
-    
+    }
+
 
     post {
+
         success {
-            echo "✅ Deployed build ${IMAGE_TAG} successfully."
+
+            echo 'Trip Planner CI/CD pipeline completed successfully!'
         }
+
         failure {
-            echo "❌ Build ${IMAGE_TAG} failed. Check the logs above."
-        }
-        always {
-            sh 'docker logout || true'
+
+            echo 'Trip Planner CI/CD pipeline failed!'
         }
     }
 }
-
