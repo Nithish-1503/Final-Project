@@ -103,26 +103,17 @@ pipeline {
 
             steps {
 
-                sh '''
-                    kubectl apply -f k8s/mysql-secret.yaml
-                    kubectl apply -f k8s/mysql-pvc.yaml
-                    kubectl apply -f k8s/mysql-deployment.yaml
-                    kubectl apply -f k8s/mysql-service.yaml
+                 sh 'kubectl apply -f k8s/'
 
-                    kubectl apply -f k8s/backend-deployment.yaml
-                    kubectl apply -f k8s/backend-service.yaml
+                    // Roll the deployments to the freshly built tag
+                    sh 'kubectl -n trip-planner set image deployment/frontend frontend=$REGISTRY/trip-frontend:$IMAGE_TAG'
+                    sh 'kubectl -n trip-planner set image deployment/backend  backend=$REGISTRY/trip-backend:$IMAGE_TAG'
+                    sh 'kubectl -n trip-planner set image deployment/mysql    mysql=$REGISTRY/trip-mysql:$IMAGE_TAG'
 
-                    kubectl apply -f k8s/frontend-deployment.yaml
-                    kubectl apply -f k8s/frontend-service.yaml
-
-                    kubectl rollout restart deployment/mysql
-                    kubectl rollout restart deployment/backend
-                    kubectl rollout restart deployment/frontend
-
-                    kubectl rollout status deployment/mysql
-                    kubectl rollout status deployment/backend
-                    kubectl rollout status deployment/frontend
-                '''
+                    // Wait for rollout
+                    sh 'kubectl -n trip-planner rollout status deployment/backend'
+                    sh 'kubectl -n trip-planner rollout status deployment/frontend'
+                
             }
         }
     }
