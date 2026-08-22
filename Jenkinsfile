@@ -1,109 +1,57 @@
 pipeline {
-
     agent any
 
     environment {
-
-        DOCKER_USERNAME = "nithish3990"
-
-        FRONTEND_IMAGE = "nithish3990/trip-planner-frontend"
-        BACKEND_IMAGE  = "nithish3990/trip-planner-backend"
-        DATABASE_IMAGE = "nithish3990/trip-planner-database"
-
-        IMAGE_TAG = "latest"
+        // Your Docker registry account (Docker Hub username, or a full registry URL).
+        REGISTRY   = "nithish3990"
+        IMAGE_TAG  = "${env.BUILD_NUMBER}"
+        // Jenkins credentials ID for Docker registry login (create in Manage Jenkins > Credentials).
+        DOCKER_CREDS = "dockerhub-creds"
+        // Jenkins credentials ID for the kubeconfig file (Secret file type).
+        KUBECONFIG_CRED = "kubeconfig"
     }
 
     stages {
-
-        stage('Checkout GitHub') {
-
+        stage('Checkout') {
             steps {
-
                 git branch: 'main',
-                    url: 'https://github.com/Nithish-1503/Docker-CI-CD.git'
+                    url: 'github.com/Nithish-1503/Final-Project.git'    
             }
         }
 
-
-        stage('Build Frontend Image') {
-
+        stage('Build Images') {
             steps {
-
-                sh '''
-                    docker build \
-                    -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                    ./forntend
-                '''
+                sh 'docker build -t $REGISTRY/trip-frontend:$IMAGE_TAG ./frontend'
+                sh 'docker build -t $REGISTRY/trip-backend:$IMAGE_TAG  ./backend'
+                sh 'docker build -t $REGISTRY/trip-mysql:$IMAGE_TAG    ./database'
             }
         }
 
-
-        stage('Build Backend Image') {
-
+        stage('Push Images') {
             steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDS}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                    sh 'docker push $REGISTRY/trip-frontend:$IMAGE_TAG'
+                    sh 'docker push $REGISTRY/trip-backend:$IMAGE_TAG'
+                    sh 'docker push $REGISTRY/trip-mysql:$IMAGE_TAG'
 
-                sh '''
-                    docker build \
-                    -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                    ./backend
-                '''
-            }
-        }
-
-
-        stage('Build Database Image') {
-
-            steps {
-
-                sh '''
-                    docker build \
-                    -t ${DATABASE_IMAGE}:${IMAGE_TAG} \
-                    ./database
-                '''
-            }
-        }
-
-
-        stage('Docker Hub Login') {
-
-            steps {
-
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login \
-                        -u "$DOCKER_USER" \
-                        --password-stdin
-                    '''
+                    // Also tag & push :latest
+                    sh 'docker tag $REGISTRY/trip-frontend:$IMAGE_TAG $REGISTRY/trip-frontend:latest && docker push $REGISTRY/trip-frontend:latest'
+                    sh 'docker tag $REGISTRY/trip-backend:$IMAGE_TAG  $REGISTRY/trip-backend:latest  && docker push $REGISTRY/trip-backend:latest'
+                    sh 'docker tag $REGISTRY/trip-mysql:$IMAGE_TAG    $REGISTRY/trip-mysql:latest    && docker push $REGISTRY/trip-mysql:latest'
                 }
             }
         }
 
-
-        stage('Push Docker Images') {
-
-            steps {
-
-                sh '''
-                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                    docker push ${DATABASE_IMAGE}:${IMAGE_TAG}
-                '''
-            }
-        }
-
-
         stage('Deploy to Kubernetes') {
-
             steps {
-
-                 sh 'kubectl apply -f k8s/'
+                
+                    // Apply manifests
+                    sh 'kubectl apply -f k8s/'
 
                     // Roll the deployments to the freshly built tag
                     sh 'kubectl -n trip-planner set image deployment/frontend frontend=$REGISTRY/trip-frontend:$IMAGE_TAG'
@@ -118,17 +66,16 @@ pipeline {
         }
     }
 
-
     post {
-
         success {
-
-            echo 'Trip Planner CI/CD pipeline completed successfully!'
+            echo "✅ Deployed build ${IMAGE_TAG} successfully."
         }
-
         failure {
-
-            echo 'Trip Planner CI/CD pipeline failed!'
+            echo "❌ Build ${IMAGE_TAG} failed. Check the logs above."
+        }
+        always {
+            sh 'docker logout || true'
         }
     }
 }
+
