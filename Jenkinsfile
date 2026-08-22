@@ -15,7 +15,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'github.com/Nithish-1503/Final-Project.git'    
+                    url: 'https://github.com/Nithish-1503/Final-Project.git'    
             }
         }
 
