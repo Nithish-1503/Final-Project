@@ -59,13 +59,13 @@ pipeline {
                     kubectl apply -f k8s/frontend-deploy.yaml
                     kubectl apply -f k8s/frontend-service.yaml
 
-                    kubectl rollout restart deployment/mysql
-                    kubectl rollout restart deployment/backend
-                    kubectl rollout restart deployment/frontend
+                    kubectl rollout restart deployment/mysql -n trip-planner
+                    kubectl rollout restart deployment/backend -n trip-planner  
+                    kubectl rollout restart deployment/frontend -n trip-planner
 
-                    kubectl rollout status deployment/mysql
-                    kubectl rollout status deployment/backend
-                    kubectl rollout status deployment/frontend
+                    kubectl rollout status deployment/mysql -n trip-planner
+                    kubectl rollout status deployment/backend -n trip-planner
+                    kubectl rollout status deployment/frontend -n trip-planner
                 '''
                    
                 
