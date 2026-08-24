@@ -31,7 +31,7 @@ pipeline {
 
                 sh '''
                     docker build \
-                    -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                    -t $DOCKER_USERNAME/trip-frontend:${IMAGE_TAG} \
                     ./forntend
                 '''
             }
@@ -44,7 +44,7 @@ pipeline {
 
                 sh '''
                     docker build \
-                    -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                    -t $DOCKER_USERNAME/trip-backend:${IMAGE_TAG} \
                     ./backend
                 '''
             }
@@ -57,7 +57,7 @@ pipeline {
 
                 sh '''
                     docker build \
-                    -t ${DATABASE_IMAGE}:${IMAGE_TAG} \
+                    -t $DOCKER_USERNAME/trip-mysql:${IMAGE_TAG} \
                     ./database
                 '''
             }
