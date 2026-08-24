@@ -4,11 +4,7 @@ pipeline {
     environment {
         // Your Docker registry account (Docker Hub username, or a full registry URL).
         REGISTRY   = "nithish3990"
-        IMAGE_TAG  = "${env.BUILD_NUMBER}"
-        // Jenkins credentials ID for Docker registry login (create in Manage Jenkins > Credentials).
-        DOCKER_CREDS = "dockerhub-creds"
-        // Jenkins credentials ID for the kubeconfig file (Secret file type).
-        KUBECONFIG_CRED = "kubeconfig"
+        IMAGE_TAG  = latest
     }
 
     stages {
@@ -39,10 +35,7 @@ pipeline {
                     sh 'docker push $REGISTRY/trip-backend:$IMAGE_TAG'
                     sh 'docker push $REGISTRY/trip-mysql:$IMAGE_TAG'
 
-                    // Also tag & push :latest
-                    sh 'docker tag $REGISTRY/trip-frontend:$IMAGE_TAG $REGISTRY/trip-frontend:latest && docker push $REGISTRY/trip-frontend:latest'
-                    sh 'docker tag $REGISTRY/trip-backend:$IMAGE_TAG  $REGISTRY/trip-backend:latest  && docker push $REGISTRY/trip-backend:latest'
-                    sh 'docker tag $REGISTRY/trip-mysql:$IMAGE_TAG    $REGISTRY/trip-mysql:latest    && docker push $REGISTRY/trip-mysql:latest'
+                    
                 }
             }
         }
@@ -51,16 +44,28 @@ pipeline {
             steps {
                 
                     // Apply manifests
-                    sh 'kubectl apply -f k8s/'
 
-                    // Roll the deployments to the freshly built tag
-                    sh 'kubectl -n trip-planner set image deployment/frontend frontend=$REGISTRY/trip-frontend:$IMAGE_TAG'
-                    sh 'kubectl -n trip-planner set image deployment/backend  backend=$REGISTRY/trip-backend:$IMAGE_TAG'
-                    sh 'kubectl -n trip-planner set image deployment/mysql    mysql=$REGISTRY/trip-mysql:$IMAGE_TAG'
+                     sh '''
+                    kubectl apply -f k8s/config-secret.yaml
+                    kubectl apply -f k8s/mysql-pvc.yaml
+                    kubectl apply -f k8s/mysql-deploy.yaml
+                    kubectl apply -f k8s/mysql-service.yaml
 
-                    // Wait for rollout
-                    sh 'kubectl -n trip-planner rollout status deployment/backend'
-                    sh 'kubectl -n trip-planner rollout status deployment/frontend'
+                    kubectl apply -f k8s/backend-deploy.yaml
+                    kubectl apply -f k8s/backend-service.yaml
+
+                    kubectl apply -f k8s/frontend-deploy.yaml
+                    kubectl apply -f k8s/frontend-service.yaml
+
+                    kubectl rollout restart deployment/mysql
+                    kubectl rollout restart deployment/backend
+                    kubectl rollout restart deployment/frontend
+
+                    kubectl rollout status deployment/mysql
+                    kubectl rollout status deployment/backend
+                    kubectl rollout status deployment/frontend
+                '''
+                   
                 
             }
         }
