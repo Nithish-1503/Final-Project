@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Your Docker registry account (Docker Hub username, or a full registry URL).
         REGISTRY   = "nithish3990"
-        IMAGE_TAG  = latest
+        IMAGE_TAG  = "latest"
     }
 
     stages {
